@@ -1,0 +1,3 @@
+rootProject.name = "voicemod"
+include ':app'
+include ':agorauikit_android'
