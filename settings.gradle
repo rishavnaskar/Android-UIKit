@@ -1,0 +1,12 @@
+//dependencyResolutionManagement {
+//    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+//    repositories {
+//        google()
+//        mavenCentral()
+//        gradlePluginPortal()
+//        maven { url 'https://www.jitpack.io' }
+//    }
+//}
+rootProject.name = "Banuba"
+include ':app'
+include ':agorauikit_android'
