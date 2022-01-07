@@ -71,9 +71,4 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.1.3")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.4.0")
     dokkaHtmlPlugin("org.jetbrains.dokka:kotlin-as-java-plugin:1.4.32")
-
-    // add this line
-    implementation(mapOf("name" to "banuba-agora-plugin", "ext" to "aar"))
-    implementation(mapOf("name" to "banuba-effect-player", "ext" to "aar"))
-
 }
