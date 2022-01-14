@@ -1,0 +1,3 @@
+rootProject.name = "SymblAi"
+include ':app'
+include ':agorauikit_android'
