@@ -47,9 +47,9 @@ class MainActivity : AppCompatActivity(), IMediaExtensionObserver {
             this,
             AgoraConnectionData(
                 appId = appID,
-                extensionName = listOf(ExtensionManager.EXTENSION_NAME)
+                extensionName = listOf(ExtensionManager.EXTENSION_NAME),
+                iMediaExtensionObserver = this
             ),
-            iMediaExtensionObserver = this
         )
 
         val frameLayout: FrameLayout.LayoutParams = FrameLayout.LayoutParams(
@@ -88,109 +88,22 @@ class MainActivity : AppCompatActivity(), IMediaExtensionObserver {
     @SuppressLint("SetTextI18n")
     private fun initAgoraEngine() {
         try {
-            val videoEncoderConfiguration = VideoEncoderConfiguration(
-                640, 360,
-                VideoEncoderConfiguration.FRAME_RATE.FRAME_RATE_FPS_24,
-                VideoEncoderConfiguration.STANDARD_BITRATE,
-                VideoEncoderConfiguration.ORIENTATION_MODE.ORIENTATION_MODE_FIXED_PORTRAIT
-            )
-            this.agView?.agkit?.setVideoEncoderConfiguration(videoEncoderConfiguration)
-
             this.agView?.agkit?.enableExtension(
                 ExtensionManager.EXTENSION_VENDOR_NAME,
                 ExtensionManager.EXTENSION_FILTER_NAME,
                 true
             )
 
-            this.agView?.agkit?.setClientRole(Constants.AUDIO_ENCODED_FRAME_OBSERVER_POSITION_MIC)
-            this.agView?.agkit?.enableLocalAudio(true)
-            this.agView?.agkit?.setEnableSpeakerphone(true)
-            this.agView?.agkit?.setAudioProfile(1)
-            this.agView?.agkit?.enableAudio()
-
-            this.agView?.agkit?.addHandler(object : IRtcEngineEventHandler() {
-
-                override fun onJoinChannelSuccess(channel: String?, uid: Int, elapsed: Int) {
-                    super.onJoinChannelSuccess(channel, uid, elapsed)
-                    agView?.agkit?.startPreview()
-                    val pluginParams = JSONObject()
-                    setSymblPluginConfigs(pluginParams)
-                    agView?.agkit?.setExtensionProperty(
-                        ExtensionManager.EXTENSION_VENDOR_NAME,
-                        ExtensionManager.EXTENSION_FILTER_NAME,
-                        "init",
-                        pluginParams.toString()
-                    )
-                }
-
-                override fun onUserInfoUpdated(uid: Int, userInfo: UserInfo?) {
-                    super.onUserInfoUpdated(uid, userInfo)
-                }
-
-                override fun onApiCallExecuted(error: Int, api: String?, result: String?) {
-                    super.onApiCallExecuted(error, api, result)
-                }
-
-                override fun onTokenPrivilegeWillExpire(token: String?) {
-                    super.onTokenPrivilegeWillExpire(token)
-                }
-
-                override fun onAudioPublishStateChanged(
-                    channel: String?,
-                    oldState: STREAM_PUBLISH_STATE?,
-                    newState: STREAM_PUBLISH_STATE?,
-                    elapseSinceLastState: Int
-                ) {
-                    super.onAudioPublishStateChanged(
-                        channel,
-                        oldState,
-                        newState,
-                        elapseSinceLastState
-                    )
-                }
-
-                override fun onAudioSubscribeStateChanged(
-                    channel: String?,
-                    uid: Int,
-                    oldState: STREAM_SUBSCRIBE_STATE?,
-                    newState: STREAM_SUBSCRIBE_STATE?,
-                    elapseSinceLastState: Int
-                ) {
-                    super.onAudioSubscribeStateChanged(
-                        channel,
-                        uid,
-                        oldState,
-                        newState,
-                        elapseSinceLastState
-                    )
-                }
-
-                override fun onRtcStats(stats: RtcStats?) {
-                    super.onRtcStats(stats)
-                }
-
-                override fun onLocalAudioStats(stats: LocalAudioStats?) {
-                    super.onLocalAudioStats(stats)
-                }
-
-                override fun onLocalAudioStateChanged(
-                    state: LOCAL_AUDIO_STREAM_STATE?,
-                    error: LOCAL_AUDIO_STREAM_ERROR?
-                ) {
-                    super.onLocalAudioStateChanged(state, error)
-                }
-
-                override fun onEncryptionError(errorType: ENCRYPTION_ERROR_TYPE?) {
-                    super.onEncryptionError(errorType)
-                }
-
-                override fun onPermissionError(permission: PERMISSION?) {
-                    super.onPermissionError(permission)
-                }
-            })
-
             this.agView?.join(meetingId, role = Constants.CLIENT_ROLE_BROADCASTER)
-//            this.agView?.agkit?.joinChannel(token, meetingId, meetingId, 0)
+
+            val pluginParams = JSONObject()
+            setSymblPluginConfigs(pluginParams)
+            agView?.agkit?.setExtensionProperty(
+                ExtensionManager.EXTENSION_VENDOR_NAME,
+                ExtensionManager.EXTENSION_FILTER_NAME,
+                "init",
+                pluginParams.toString()
+            )
 
             val button: Button = findViewById(R.id.togglebtn)
             var toggle = false
@@ -296,8 +209,6 @@ class MainActivity : AppCompatActivity(), IMediaExtensionObserver {
                 "start",
                 pluginParams.toString()
             )
-
-//            onEvent(ExtensionManager.EXTENSION_VENDOR_NAME, ExtensionManager.EXTENSION_NAME, "key", "val")
         } catch (e: JSONException) {
             e.printStackTrace()
         }

@@ -5,11 +5,16 @@ import android.content.Context
 import android.widget.*
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
-import io.agora.rtc2.*
+import io.agora.rtc2.Constants
+import io.agora.rtc2.RtcEngine
+import io.agora.rtc2.RtcEngineConfig
 import io.agora.rtc2.video.BeautyOptions
 import io.agora.rtc2.video.VideoEncoderConfiguration
 import java.util.logging.Level
 import java.util.logging.Logger
+import io.agora.rtc2.IRtcEngineEventHandler
+
+
 
 
 /**
@@ -21,7 +26,6 @@ interface AgoraVideoViewerDelegate {
      * @param channel Channel that the local user has joined.
      */
     fun joinedChannel(channel: String) {}
-
     /**
      * Local user has left a channel
      * @param channel Channel that the local user has left.
@@ -50,7 +54,7 @@ interface AgoraVideoViewerDelegate {
 /**
  * View to contain all the video session objects, including camera feeds and buttons for settings
  */
-open class AgoraVideoViewer : FrameLayout {
+open class AgoraVideoViewer: FrameLayout {
 
     /**
      * Style and organisation to be applied to all the videos in this view.
@@ -76,7 +80,6 @@ open class AgoraVideoViewer : FrameLayout {
     internal var screenShareButton: AgoraButton? = null
 
     companion object {}
-
     internal var remoteUserIDs: MutableSet<Int> = mutableSetOf()
     internal var userVideoLookup: MutableMap<Int, AgoraSingleVideoView> = mutableMapOf()
     internal val userVideosForGrid: Map<Int, AgoraSingleVideoView>
@@ -132,8 +135,7 @@ open class AgoraVideoViewer : FrameLayout {
         this.userVideoLookup[userId]?.let { remoteView ->
             return remoteView
         }
-        val remoteVideoView =
-            AgoraSingleVideoView(this.context, userId, this.agoraSettings.colors.micFlag)
+        val remoteVideoView = AgoraSingleVideoView(this.context, userId, this.agoraSettings.colors.micFlag)
         remoteVideoView.canvas.renderMode = this.agoraSettings.videoRenderMode
         this.agkit.setupRemoteVideo(remoteVideoView.canvas)
 //        this.agkit.setRemoteVideoRenderer(remoteVideoView.uid, remoteVideoView.textureView)
@@ -203,37 +205,25 @@ open class AgoraVideoViewer : FrameLayout {
      */
     @Throws(Exception::class)
     public constructor(
-        context: Context,
-        connectionData: AgoraConnectionData,
+        context: Context, connectionData: AgoraConnectionData,
         style: Style = Style.FLOATING,
         agoraSettings: AgoraSettings = AgoraSettings(),
         delegate: AgoraVideoViewerDelegate? = null,
-        iMediaExtensionObserver: IMediaExtensionObserver
-    ) : super(context) {
+    ): super(context) {
         this.connectionData = connectionData
         this.style = style
         this.agoraSettings = agoraSettings
         this.delegate = delegate
 //        this.setBackgroundColor(Color.BLUE)
-        initAgoraEngine(iMediaExtensionObserver)
-        this.addView(
-            this.backgroundVideoHolder,
-            ConstraintLayout.LayoutParams(
-                ConstraintLayout.LayoutParams.MATCH_PARENT,
-                ConstraintLayout.LayoutParams.MATCH_PARENT
-            )
-        )
-        this.addView(
-            this.floatingVideoHolder,
-            ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.MATCH_PARENT, 200)
-        )
+        initAgoraEngine()
+        this.addView(this.backgroundVideoHolder, ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.MATCH_PARENT, ConstraintLayout.LayoutParams.MATCH_PARENT))
+        this.addView(this.floatingVideoHolder, ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.MATCH_PARENT, 200))
         this.floatingVideoHolder.setBackgroundColor(this.agoraSettings.colors.floatingBackgroundColor)
-        this.floatingVideoHolder.background.alpha =
-            this.agoraSettings.colors.floatingBackgroundAlpha
+        this.floatingVideoHolder.background.alpha = this.agoraSettings.colors.floatingBackgroundAlpha
     }
 
     @Throws(Exception::class)
-    private fun initAgoraEngine(iMediaExtensionObserver: IMediaExtensionObserver) {
+    private fun initAgoraEngine() {
         if (connectionData.appId == "my-app-id") {
             Logger.getLogger("AgoraUIKit").log(Level.SEVERE, "Change the App ID!")
             throw IllegalArgumentException("Change the App ID!")
@@ -242,20 +232,26 @@ open class AgoraVideoViewer : FrameLayout {
         rtcEngineConfig.mAppId = connectionData.appId
         rtcEngineConfig.mContext = context.applicationContext
         rtcEngineConfig.mEventHandler = this.newHandler
-        rtcEngineConfig.mExtensionObserver = iMediaExtensionObserver
-        if (connectionData.extensionName?.isNotEmpty() == true) {
+        if (connectionData.extensionName?.isNotEmpty() == true){
             for (extension in connectionData.extensionName!!) {
                 rtcEngineConfig.addExtension(extension)
             }
         }
+        if(connectionData.iMediaExtensionObserver != null) {
+            rtcEngineConfig.mExtensionObserver = connectionData.iMediaExtensionObserver
+        }
 
-        try {
+        try{
             this.agkit = RtcEngine.create(rtcEngineConfig)
-        } catch (e: Exception) {
+        }catch (e: Exception){
             println("Exception while initializing the SDK : ${e.message}")
         }
 
         agkit.enableAudioVolumeIndication(1000, 3)
+        agkit.setClientRole(this.userRole)
+        agkit.enableVideo()
+        agkit.setVideoEncoderConfiguration(VideoEncoderConfiguration())
+        agkit.startPreview()
     }
 
 //    constructor(context: Context) : super(context)
@@ -353,7 +349,6 @@ open class AgoraVideoViewer : FrameLayout {
                             this@AgoraVideoViewer.connectionData.appToken = token
                             this@AgoraVideoViewer.join(channel, token, role, uid)
                         }
-
                         override fun onError(error: TokenError) {
                             Logger.getLogger("AgoraUIKit", "Could not get token: ${error.name}")
                         }
@@ -384,8 +379,7 @@ open class AgoraVideoViewer : FrameLayout {
             val leaveChannelRtn = this.leaveChannel()
             if (leaveChannelRtn < 0) {
                 // could not leave channel
-                Logger.getLogger("AgoraUIKit")
-                    .log(Level.WARNING, "Could not leave channel: $leaveChannelRtn")
+                Logger.getLogger("AgoraUIKit").log(Level.WARNING, "Could not leave channel: $leaveChannelRtn")
             } else {
                 this.join(channel, token, role, uid)
             }
