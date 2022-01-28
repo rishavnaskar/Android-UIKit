@@ -4,9 +4,11 @@ import ai.symbl.android.extension.ExtensionManager
 import ai.symbl.android.extension.SymblAIFilterManager
 import ai.symbl.android.extension.model.request.*
 import ai.symbl.android.extension.model.response.SymblResponse
+import ai.symbl.android.extension.model.response.message.Payload
 import android.annotation.SuppressLint
 import android.graphics.Color
 import android.os.Bundle
+import android.util.AttributeSet
 import android.util.Log
 import android.view.ViewGroup
 import android.widget.Button
@@ -15,6 +17,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
+import io.agora.agorauikit_android.AgoraButton
 import io.agora.agorauikit_android.AgoraConnectionData
 import io.agora.agorauikit_android.AgoraVideoViewer
 import io.agora.agorauikit_android.requestPermissions
@@ -94,6 +97,25 @@ class MainActivity : AppCompatActivity(), IMediaExtensionObserver {
                 true
             )
 
+            val agoraButton = AgoraButton(this)
+            agoraButton.setBackgroundResource(R.drawable.ic_baseline_info_24)
+            var toggle = false
+
+            agoraButton.setOnClickListener {
+                toggle = if (!toggle) {
+                    enableEffect(JSONObject())
+                    Toast.makeText(this@MainActivity, "Effect enabled", Toast.LENGTH_LONG)
+                        .show()
+                    !toggle
+                } else {
+                    disableEffect()
+                    Toast.makeText(this@MainActivity, "Effect disabled", Toast.LENGTH_LONG)
+                        .show()
+                    !toggle
+                }
+            }
+            this.agView?.agoraSettings?.extraButtons?.add(agoraButton)
+
             this.agView?.join(meetingId, role = Constants.CLIENT_ROLE_BROADCASTER)
 
             val pluginParams = JSONObject()
@@ -105,22 +127,6 @@ class MainActivity : AppCompatActivity(), IMediaExtensionObserver {
                 pluginParams.toString()
             )
 
-            val button: Button = findViewById(R.id.togglebtn)
-            var toggle = false
-
-            button.setOnClickListener {
-                if (!toggle) {
-                    enableEffect(JSONObject())
-                    Toast.makeText(this@MainActivity, "Effect enabled", Toast.LENGTH_LONG).show()
-                    toggle = !toggle
-                    button.text = "On"
-                } else {
-                    disableEffect()
-                    Toast.makeText(this@MainActivity, "Effect disabled", Toast.LENGTH_LONG).show()
-                    toggle = !toggle
-                    button.text = "Off"
-                }
-            }
         } catch (e: Exception) {
             println("---- " + e.message + " ----")
         }
@@ -225,14 +231,7 @@ class MainActivity : AppCompatActivity(), IMediaExtensionObserver {
     }
 
     override fun onEvent(vendor: String, extension: String, key: String, value: String) {
-        println("---- onEvent ----")
-
-        Log.i(
-            TAG,
-            "Symbl conversation Event \n \n  $vendor  extension: $extension  key: $key  value: $value"
-        )
         val sb = StringBuilder()
-        sb.append(value)
         if ("result" == key) {
             try {
                 val json = Gson()
@@ -241,11 +240,14 @@ class MainActivity : AppCompatActivity(), IMediaExtensionObserver {
                     when (symblResponse.getEvent()) {
                         SymblAIFilterManager.SYMBL_START_PLUGIN_REQUEST -> {}
                         SymblAIFilterManager.SYMBL_ON_MESSAGE -> try {
-                            println("---- onMessage ----")
                             if (symblResponse.getErrorMessage() != null && symblResponse.getErrorMessage()
                                     .isNotEmpty()
                             ) {
                                 Log.e(TAG, symblResponse.errorMessage)
+                            } else {
+                                val symblPayload =
+                                    json.fromJson(symblResponse.result, SymblResult::class.java)
+                                sb.append(symblPayload.message?.payload?.transcript)
                             }
                         } catch (ex: Exception) {
                             Log.e(
@@ -287,9 +289,12 @@ Error code :${symblResponse.getErrorCode()}"""
         }
 
         this.runOnUiThread {
-            Log.i(TAG, "--- onThread ---")
-            Log.i(TAG, "---- $sb ----")
-            infoTextView.text = sb.toString()
+            if (sb.isNotEmpty()) {
+                Log.i(TAG, "---- $sb ----")
+                infoTextView.text = sb.toString()
+            } else {
+                infoTextView.text = "Waiting for speech"
+            }
         }
     }
 }

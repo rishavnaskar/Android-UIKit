@@ -3,6 +3,8 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Agora/SymblAi/agorauikit_android/src/main/res/drawable/button_background.xml" value="0.1671875" />
+        <entry key="..\:/Agora/SymblAi/app/src/main/res/drawable/ic_baseline_info_24.xml" value="0.1671875" />
         <entry key="..\:/Agora/SymblAi/app/src/main/res/layout/activity_main.xml" value="0.2" />
       </map>
     </option>
