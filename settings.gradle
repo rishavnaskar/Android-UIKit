@@ -1,0 +1,3 @@
+rootProject.name = "Custom Background (Android)"
+include ':app'
+include ':agorauikit_android'
