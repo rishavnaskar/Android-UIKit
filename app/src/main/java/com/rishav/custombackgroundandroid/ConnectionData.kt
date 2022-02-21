@@ -5,3 +5,4 @@ package com.rishav.custombackgroundandroid
  */
 
 const val appID = "<- enter your app ID here ->"
+const val appToken = "<- enter your app token if required ->"

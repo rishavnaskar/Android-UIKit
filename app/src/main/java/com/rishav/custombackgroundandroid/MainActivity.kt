@@ -21,6 +21,7 @@ import androidx.activity.result.contract.ActivityResultContracts.StartActivityFo
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
+import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.github.dhaval2404.imagepicker.ImagePicker
@@ -29,6 +30,7 @@ import com.github.dhaval2404.imagepicker.ImagePicker
 class MainActivity : AppCompatActivity() {
     private var agView: AgoraVideoViewer? = null
     private val tag = "VirtualBackground"
+    private var virtualBackgroundToggle = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,28 +81,17 @@ class MainActivity : AppCompatActivity() {
         val backgroundButton = addBackgroundButton()
         this.agView?.join("test", role = Constants.CLIENT_ROLE_BROADCASTER)
 
-        var toggle = false
         backgroundButton.setOnClickListener {
-            if (toggle) {
-                if (isLegacyExternalStoragePermissionRequired()) {
-                    requestLegacyWriteExternalStoragePermission();
-                } else {
-                    toggle = !toggle
+            if (!virtualBackgroundToggle) {
+                /* For virtual background IMAGE */
+                pickImageFromGallery()
 
-                    // For virtual background IMAGE
-                    pickImageFromGallery()
+                /* For virtual background COLOR
+                val backgroundSource = virtualBackgroundCOLOR(0xFFB6C2) */
 
-                    // For virtual background COLOR
-//                    val backgroundSource = virtualBackgroundCOLOR(0xFFB6C2)
-//                    enableVirtualBackground(backgroundSource)
-
-                    // For virtual background BLUR
-//                    val backgroundSource =
-//                        virtualBackgroundBLUR(VirtualBackgroundSource.BLUR_DEGREE_MEDIUM)
-//                    backgroundSource?.let { it1 -> enableVirtualBackground(it1) }
-                }
+                /* For virtual background BLUR
+                virtualBackgroundBLUR(VirtualBackgroundSource.BLUR_DEGREE_MEDIUM) */
             } else {
-                toggle = !toggle
                 disableCustomBackground()
             }
         }
@@ -110,7 +101,6 @@ class MainActivity : AppCompatActivity() {
         val backgroundButton = AgoraButton(this)
         backgroundButton.setBackgroundResource(R.drawable.ic_baseline_image_24)
         this.agView?.agoraSettings?.extraButtons?.add(backgroundButton)
-
         return backgroundButton
     }
 
@@ -119,8 +109,7 @@ class MainActivity : AppCompatActivity() {
     ) {
         if (it.resultCode == Activity.RESULT_OK) {
             val data: Intent = it.data!!
-            val backgroundSource = virtualBackgroundIMG(data.data!!.path)
-            enableVirtualBackground(backgroundSource)
+            virtualBackgroundIMG(data.data!!.path)
             return@registerForActivityResult
         } else {
             Log.e(tag, "--- ERROR AFTER IMAGE ---")
@@ -133,31 +122,31 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun virtualBackgroundIMG(imgSrc: String? = null): VirtualBackgroundSource {
+    private fun virtualBackgroundIMG(imgSrc: String? = null) {
         val backgroundSource = VirtualBackgroundSource()
         backgroundSource.backgroundSourceType = VirtualBackgroundSource.BACKGROUND_IMG
         backgroundSource.source = imgSrc
-        return backgroundSource
+        enableVirtualBackground(backgroundSource)
     }
 
     @Suppress("SameParameterValue")
-    private fun virtualBackgroundCOLOR(color: Int): VirtualBackgroundSource {
+    private fun virtualBackgroundCOLOR(color: Int) {
         val backgroundSource = VirtualBackgroundSource()
         backgroundSource.backgroundSourceType = VirtualBackgroundSource.BACKGROUND_COLOR
         backgroundSource.color = color
-        return backgroundSource
+        enableVirtualBackground(backgroundSource)
     }
 
 
-    private fun virtualBackgroundBLUR(blurDegree: Int): VirtualBackgroundSource? {
+    private fun virtualBackgroundBLUR(blurDegree: Int) {
         if (blurDegree > 3 || blurDegree < 0) {
             Log.i(tag, "Invalid Blur Degree")
-            return null
+            return
         }
         val backgroundSource = VirtualBackgroundSource()
         backgroundSource.backgroundSourceType = VirtualBackgroundSource.BACKGROUND_BLUR
         backgroundSource.blur_degree = blurDegree
-        return backgroundSource
+        enableVirtualBackground(backgroundSource)
     }
 
     private fun enableVirtualBackground(backgroundSource: VirtualBackgroundSource) {
@@ -165,15 +154,19 @@ class MainActivity : AppCompatActivity() {
         this.agView?.agkit?.addHandler(object : IRtcEngineEventHandler() {
             override fun onVirtualBackgroundSourceEnabled(enabled: Boolean, reason: Int) {
                 super.onVirtualBackgroundSourceEnabled(enabled, reason)
+                virtualBackgroundToggle = !virtualBackgroundToggle
                 Log.i(tag, "Virtual Background - ${backgroundSource.backgroundSourceType}")
                 println(enabled)
                 println(reason)
+                Toast.makeText(this@MainActivity, "Virtual Background Enabled", Toast.LENGTH_SHORT)
+                    .show()
             }
         })
     }
 
     private fun disableCustomBackground() {
         this.agView?.agkit?.enableVirtualBackground(false, VirtualBackgroundSource())
+        Toast.makeText(this, "Virtual Background Disabled", Toast.LENGTH_SHORT).show()
     }
 
     private fun isLegacyExternalStoragePermissionRequired(): Boolean {
