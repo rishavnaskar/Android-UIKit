@@ -168,17 +168,4 @@ class MainActivity : AppCompatActivity() {
         this.agView?.agkit?.enableVirtualBackground(false, VirtualBackgroundSource())
         Toast.makeText(this, "Virtual Background Disabled", Toast.LENGTH_SHORT).show()
     }
-
-    private fun isLegacyExternalStoragePermissionRequired(): Boolean {
-        val permissionGranted = ContextCompat.checkSelfPermission(
-            this, Manifest.permission.WRITE_EXTERNAL_STORAGE
-        ) == PackageManager.PERMISSION_GRANTED
-        return Build.VERSION.SDK_INT < 29 && !permissionGranted
-    }
-
-    private fun requestLegacyWriteExternalStoragePermission() {
-        val permission = arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-        val code = 456
-        ActivityCompat.requestPermissions(this, permission, code)
-    }
 }
